@@ -1,9 +1,11 @@
+use crate::average::AverageObservable;
 use crate::filter::FilterOp;
 use crate::flatten::FlattenObservable;
 use crate::group_by::{GroupByOp, SenderMap};
 use crate::map::MapOp;
 use crate::reduce::ReduceOp;
 use crate::scheduler::Scheduler;
+use num_traits::Zero;
 use std::collections::HashMap;
 use std::io;
 use std::sync::mpsc;
@@ -74,6 +76,18 @@ pub trait Observable: Sized {
         }
     }
 
+    #[cfg(feature = "math")]
+    fn average(self) -> AverageObservable<Self, Self::Item, i32>
+    where
+        Self::Item: Zero,
+    {
+        AverageObservable {
+            source: self,
+            collector: Self::Item::zero(),
+            count: 0,
+        }
+    }
+
     fn subscribe<F, S>(self, f: F, scheduler: S)
     where
         F: FnOnce(Self::Item) + Clone,
@@ -89,11 +103,6 @@ pub trait Observable: Sized {
                 Ok(Err(e)) => panic!("{}", e.to_string()),
                 Err(_) => break, // Channel closed
             }
-            // if let Ok(Ok(message)) = message {
-            //     (f.clone())(message);
-            // } else {
-            //     return;
-            // }
         }
     }
 

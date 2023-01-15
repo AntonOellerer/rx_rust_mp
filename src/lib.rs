@@ -1,5 +1,7 @@
 extern crate core;
 
+#[cfg(feature = "math")]
+pub mod average;
 pub mod create;
 pub mod filter;
 pub mod flatten;
@@ -18,7 +20,9 @@ mod tests {
     use crate::observable::Observable;
     use crate::observer::Observer;
     use futures::executor::ThreadPool;
+    use std::cell::RefCell;
     use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn it_maps() {
@@ -134,5 +138,18 @@ mod tests {
                 pool,
             );
         assert_eq!(collector.into_inner(), 45);
+    }
+
+    #[test]
+    fn it_averages() {
+        let collector = Arc::new(RefCell::new(0_f64));
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10).map(f64::from).average().subscribe(
+            |v| {
+                *collector.borrow_mut() += v;
+            },
+            pool,
+        );
+        assert_eq!(*collector.borrow(), 4.5_f64);
     }
 }
