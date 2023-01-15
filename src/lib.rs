@@ -1,15 +1,15 @@
 extern crate core;
 
-mod create;
-mod filter;
-mod flatten;
-mod from_iter;
-mod group_by;
-mod map;
-mod observable;
-mod observer;
-mod reduce;
-mod scheduler;
+pub mod create;
+pub mod filter;
+pub mod flatten;
+pub mod from_iter;
+pub mod group_by;
+pub mod map;
+pub mod observable;
+pub mod observer;
+pub mod reduce;
+pub mod scheduler;
 
 #[cfg(test)]
 mod tests {
