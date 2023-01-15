@@ -61,6 +61,19 @@ pub trait Observable: Sized {
         FlattenObservable { source: self }
     }
 
+    fn flat_map<F, B, Item>(self, f: F) -> FlattenObservable<MapOp<Self, F>>
+    where
+        F: Fn(Self::Item) -> B,
+        B: Observable<Item = Item>,
+    {
+        FlattenObservable {
+            source: MapOp {
+                source: self,
+                func: f,
+            },
+        }
+    }
+
     fn subscribe<F, S>(self, f: F, scheduler: S)
     where
         F: FnOnce(Self::Item) + Clone,

@@ -5,7 +5,7 @@ use std::sync::mpsc::Sender;
 
 pub struct Create<I, Item> {
     create_function: I,
-    _marker: PhantomData<*const Item>,
+    _marker: PhantomData<Item>,
 }
 
 pub fn create<I, Item>(create_function: I) -> Create<I, Item>

@@ -120,4 +120,19 @@ mod tests {
         );
         assert_eq!(collector.into_inner(), 6);
     }
+
+    #[test]
+    fn it_flat_maps() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10)
+            .flat_map(|v| create(move |s| s.next(v).unwrap()))
+            .subscribe(
+                |v| {
+                    collector.fetch_add(v, Ordering::Relaxed);
+                },
+                pool,
+            );
+        assert_eq!(collector.into_inner(), 45);
+    }
 }
