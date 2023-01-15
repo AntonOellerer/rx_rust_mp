@@ -10,7 +10,7 @@ use std::sync::mpsc::{Receiver, Sender};
 pub type SenderMap<Key, Item> = HashMap<Key, Sender<io::Result<Item>>>;
 
 pub struct KeySubject<Key, Item> {
-    pub(crate) key: Key,
+    pub key: Key,
     pub(crate) source: Receiver<io::Result<Item>>,
 }
 
