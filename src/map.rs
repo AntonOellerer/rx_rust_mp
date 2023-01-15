@@ -16,7 +16,7 @@ impl<Item, S, M> Observable for MapOp<S, M>
 where
     S: Observable,
     S::Item: Send + 'static,
-    M: FnOnce(S::Item) -> Item + Clone + Send + 'static,
+    M: Fn(S::Item) -> Item + Clone + Send + 'static,
     Item: Send + 'static,
 {
     type Item = Item;

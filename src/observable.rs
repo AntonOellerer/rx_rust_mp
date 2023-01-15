@@ -10,7 +10,7 @@ pub trait Observable: Sized {
 
     fn map<F, B>(self, f: F) -> MapOp<Self, F>
     where
-        F: FnOnce(Self::Item) -> B,
+        F: Fn(Self::Item) -> B,
     {
         MapOp {
             source: self,
@@ -20,7 +20,7 @@ pub trait Observable: Sized {
 
     fn filter<F>(self, f: F) -> FilterOp<Self, F>
     where
-        F: FnOnce(&Self::Item) -> bool,
+        F: Fn(&Self::Item) -> bool,
     {
         FilterOp {
             source: self,
@@ -35,6 +35,7 @@ pub trait Observable: Sized {
     {
         let (incoming_tx, incoming_rx) = mpsc::channel();
         self.actual_subscribe(incoming_tx, scheduler);
+        //todo this means that `subscribe` blocks until no more messages arrive, maybe move to different thread and return handle?
         loop {
             let message = incoming_rx.recv();
             match message {

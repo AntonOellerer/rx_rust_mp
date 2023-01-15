@@ -16,7 +16,7 @@ impl<S, F> Observable for FilterOp<S, F>
 where
     S: Observable,
     S::Item: Send + 'static,
-    F: FnOnce(&S::Item) -> bool + Clone + Send + 'static,
+    F: Fn(&S::Item) -> bool + Clone + Send + 'static,
 {
     type Item = S::Item;
     // type Err = S::Err;
