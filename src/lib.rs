@@ -1,18 +1,22 @@
 extern crate core;
 
+mod create;
 mod filter;
 mod flatten;
 mod from_iter;
 mod group_by;
 mod map;
 mod observable;
+mod observer;
 mod reduce;
 mod scheduler;
 
 #[cfg(test)]
 mod tests {
+    use crate::create::create;
     use crate::from_iter::from_iter;
     use crate::observable::Observable;
+    use crate::observer::Observer;
     use futures::executor::ThreadPool;
     use std::sync::atomic::{AtomicI32, Ordering};
 
@@ -97,5 +101,23 @@ mod tests {
             pool,
         );
         assert_eq!(collector.into_inner(), 45);
+    }
+
+    #[test]
+    fn it_creates() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        create(|sender| {
+            sender.next(1).unwrap();
+            sender.next(2).unwrap();
+            sender.next(3).unwrap();
+        })
+        .subscribe(
+            |v| {
+                collector.fetch_add(v, Ordering::Relaxed);
+            },
+            pool,
+        );
+        assert_eq!(collector.into_inner(), 6);
     }
 }
