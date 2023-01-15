@@ -34,7 +34,7 @@ pub trait Observable: Sized {
         }
     }
 
-    fn reduce<C, R>(self, f: R, collector: C) -> ReduceOp<Self, C, R>
+    fn reduce<C, R>(self, collector: C, f: R) -> ReduceOp<Self, C, R>
     where
         R: Fn(C, Self::Item) -> C,
     {

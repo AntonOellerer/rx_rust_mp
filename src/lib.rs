@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn it_reduces() {
         let collector = AtomicI32::new(0);
-        from_iter(0..10).reduce(|c, v| c + v, 0).subscribe(
+        from_iter(0..10).reduce(0, |c, v| c + v).subscribe(
             |v| {
                 collector.fetch_add(v, Ordering::Relaxed);
             },
