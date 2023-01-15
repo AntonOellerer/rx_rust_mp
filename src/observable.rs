@@ -1,7 +1,9 @@
 use crate::filter::FilterOp;
+use crate::group_by::{GroupByOp, SenderMap};
 use crate::map::MapOp;
 use crate::reduce::ReduceOp;
 use crate::scheduler::Scheduler;
+use std::collections::HashMap;
 use std::io;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
@@ -37,6 +39,20 @@ pub trait Observable: Sized {
             source: self,
             func: f,
             collector,
+        }
+    }
+
+    fn group_by<GF, Key>(
+        self,
+        grouping_function: GF,
+    ) -> GroupByOp<Self, GF, SenderMap<Key, Self::Item>>
+    where
+        GF: Fn(&Self::Item) -> Key,
+    {
+        GroupByOp {
+            source: self,
+            grouping_function,
+            channel_store: HashMap::new(),
         }
     }
 

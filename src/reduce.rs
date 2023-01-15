@@ -21,24 +21,27 @@ where
 {
     type Item = CollectResult;
 
-    fn actual_subscribe<O>(mut self, channel: Sender<std::io::Result<Self::Item>>, pool: O)
+    fn actual_subscribe<O>(mut self, channel: Sender<io::Result<Self::Item>>, pool: O)
     where
         O: Scheduler + Clone + Send + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::channel::<io::Result<Source::Item>>();
-        pool.schedule(move || loop {
-            let message = incoming_rx.recv();
-            match message {
-                Ok(Ok(message)) => self.collector = (self.func)(self.collector, message),
-                Ok(Err(e)) => {
-                    eprintln!("Reduce, inner unwrap: {:?}", e.to_string());
-                    channel
-                        .send(Err(io::Error::new(ErrorKind::Other, e)))
-                        .unwrap();
-                    break;
+        pool.schedule(move || {
+            loop {
+                let message = incoming_rx.recv();
+                match message {
+                    Ok(Ok(message)) => self.collector = (self.func)(self.collector, message),
+                    Ok(Err(e)) => {
+                        eprintln!("Reduce, inner unwrap: {:?}", e.to_string());
+                        channel
+                            .send(Err(io::Error::new(ErrorKind::Other, e)))
+                            .unwrap();
+                        break;
+                    }
+                    Err(_) => break, // Channel closed
                 }
-                Err(_) => break, // Channel closed
             }
+            channel.send(Ok(self.collector)).unwrap();
         });
         self.source.actual_subscribe(incoming_tx, pool);
     }
