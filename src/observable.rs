@@ -1,5 +1,6 @@
 use crate::filter::FilterOp;
 use crate::map::MapOp;
+use crate::reduce::ReduceOp;
 use crate::scheduler::Scheduler;
 use std::io;
 use std::sync::mpsc;
@@ -25,6 +26,17 @@ pub trait Observable: Sized {
         FilterOp {
             source: self,
             func: f,
+        }
+    }
+
+    fn reduce<C, R>(self, f: R, collector: C) -> ReduceOp<Self, C, R>
+    where
+        R: Fn(C, Self::Item) -> C,
+    {
+        ReduceOp {
+            source: self,
+            func: f,
+            collector,
         }
     }
 
