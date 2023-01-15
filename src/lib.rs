@@ -1,5 +1,6 @@
 extern crate core;
 
+mod filter;
 mod from_iter;
 mod map;
 mod observable;
@@ -16,14 +17,8 @@ mod tests {
     #[test]
     fn it_works() {
         from_iter(0..10)
-            .map(|v| {
-                println!(
-                    "Map: value: {v}, thread: {:?}, time: {:?}",
-                    thread::current().id(),
-                    SystemTime::now()
-                );
-                v
-            })
+            .map(|v| v + 1)
+            .filter(|v| v % 2 == 0)
             .subscribe(
                 |v| {
                     println!(

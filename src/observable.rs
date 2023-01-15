@@ -1,3 +1,4 @@
+use crate::filter::FilterOp;
 use crate::map::MapOp;
 use crate::scheduler::Scheduler;
 use std::io;
@@ -12,6 +13,16 @@ pub trait Observable: Sized {
         F: FnOnce(Self::Item) -> B,
     {
         MapOp {
+            source: self,
+            func: f,
+        }
+    }
+
+    fn filter<F>(self, f: F) -> FilterOp<Self, F>
+    where
+        F: FnOnce(&Self::Item) -> bool,
+    {
+        FilterOp {
             source: self,
             func: f,
         }

@@ -7,19 +7,18 @@ use crate::scheduler::Scheduler;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
-pub struct MapOp<S, M> {
+pub struct FilterOp<S, F> {
     pub(crate) source: S,
-    pub(crate) func: M,
+    pub(crate) func: F,
 }
 
-impl<Item, S, M> Observable for MapOp<S, M>
+impl<S, F> Observable for FilterOp<S, F>
 where
     S: Observable,
     S::Item: Send + 'static,
-    M: FnOnce(S::Item) -> Item + Clone + Send + 'static,
-    Item: Send + 'static,
+    F: FnOnce(&S::Item) -> bool + Clone + Send + 'static,
 {
-    type Item = Item;
+    type Item = S::Item;
     // type Err = S::Err;
 
     fn actual_subscribe<O>(self, channel: Sender<io::Result<Self::Item>>, pool: O)
@@ -35,8 +34,9 @@ where
             let pool_cc = pool_c.clone();
             match message {
                 Ok(Ok(message)) => pool_cc.schedule(move || {
-                    let out = (func_c)(message);
-                    channel_c.send(Ok(out)).unwrap();
+                    if (func_c)(&message) {
+                        channel_c.send(Ok(message)).unwrap()
+                    }
                 }),
                 Ok(Err(e)) => {
                     eprintln!("Map, inner unwrap: {:?}", e.to_string());
