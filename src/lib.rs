@@ -1,6 +1,7 @@
 extern crate core;
 
 mod filter;
+mod flatten;
 mod from_iter;
 mod group_by;
 mod map;
@@ -63,6 +64,35 @@ mod tests {
                 let key = group.key;
                 group.subscribe(|v| assert_eq!(v, key), pool_c.clone());
                 collector.fetch_add(key, Ordering::Relaxed);
+            },
+            pool,
+        );
+        assert_eq!(collector.into_inner(), 45);
+    }
+
+    #[test]
+    fn it_flattens() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10)
+            .map(|_| from_iter(0..10))
+            .flatten()
+            .subscribe(
+                |v| {
+                    collector.fetch_add(v, Ordering::Relaxed);
+                },
+                pool,
+            );
+        assert_eq!(collector.into_inner(), 450);
+    }
+
+    #[test]
+    fn it_groups_flattens() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10).group_by(|v| *v).flatten().subscribe(
+            |v| {
+                collector.fetch_add(v, Ordering::Relaxed);
             },
             pool,
         );

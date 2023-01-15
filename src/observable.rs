@@ -1,4 +1,5 @@
 use crate::filter::FilterOp;
+use crate::flatten::FlattenObservable;
 use crate::group_by::{GroupByOp, SenderMap};
 use crate::map::MapOp;
 use crate::reduce::ReduceOp;
@@ -54,6 +55,10 @@ pub trait Observable: Sized {
             grouping_function,
             channel_store: HashMap::new(),
         }
+    }
+
+    fn flatten(self) -> FlattenObservable<Self> {
+        FlattenObservable { source: self }
     }
 
     fn subscribe<F, S>(self, f: F, scheduler: S)

@@ -27,16 +27,7 @@ where
         pool.schedule(move || loop {
             let message = self.source.recv();
             match message {
-                Ok(Ok(message)) => {
-                    channel.send(Ok(message)).unwrap();
-                }
-                Ok(Err(e)) => {
-                    eprintln!("Group By, inner unwrap: {:?}", e.to_string());
-                    channel
-                        .send(Err(io::Error::new(ErrorKind::Other, e)))
-                        .unwrap();
-                    break;
-                }
+                Ok(message) => channel.send(message).unwrap(),
                 Err(_) => break, // Channel closed
             }
         });
