@@ -113,7 +113,7 @@ pub trait Observable: Sized {
 
     fn subscribe<F, S>(self, f: F, scheduler: S)
     where
-        F: FnOnce(Self::Item) + Clone,
+        F: Fn(Self::Item),
         S: Scheduler + Clone + Send + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::channel();
@@ -122,7 +122,7 @@ pub trait Observable: Sized {
         loop {
             let message = incoming_rx.recv();
             match message {
-                Ok(Ok(message)) => (f.clone())(message),
+                Ok(Ok(message)) => (f)(message),
                 Ok(Err(e)) => panic!("{}", e.to_string()),
                 Err(_) => break, // Channel closed
             }
