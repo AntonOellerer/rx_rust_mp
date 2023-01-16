@@ -1,3 +1,4 @@
+#![feature(drain_filter)]
 extern crate core;
 
 #[cfg(feature = "math")]
@@ -12,6 +13,8 @@ pub mod observable;
 pub mod observer;
 pub mod reduce;
 pub mod scheduler;
+#[cfg(feature = "recurring")]
+pub mod sliding_window;
 
 #[cfg(test)]
 mod tests {

@@ -1,3 +1,4 @@
+#[cfg(feature = "math")]
 use crate::average::AverageObservable;
 use crate::filter::FilterOp;
 use crate::flatten::FlattenObservable;
@@ -5,11 +6,14 @@ use crate::group_by::{GroupByOp, SenderMap};
 use crate::map::MapOp;
 use crate::reduce::ReduceOp;
 use crate::scheduler::Scheduler;
+#[cfg(feature = "recurring")]
+use crate::sliding_window::SlidingWindowObservable;
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::io;
-use std::sync::mpsc;
 use std::sync::mpsc::Sender;
+use std::sync::{mpsc, Arc, Mutex};
+use std::time::Duration;
 
 pub trait Observable: Sized {
     type Item;
@@ -85,6 +89,25 @@ pub trait Observable: Sized {
             source: self,
             collector: Self::Item::zero(),
             count: 0,
+        }
+    }
+
+    #[cfg(feature = "recurring")]
+    fn sliding_window<F>(
+        self,
+        interval: Duration,
+        window_size: Duration,
+        time_function: F,
+    ) -> SlidingWindowObservable<Self, Self::Item, F>
+    where
+        F: Fn(&Self::Item) -> Duration + Send + 'static,
+    {
+        SlidingWindowObservable {
+            source: self,
+            interval,
+            window_size,
+            time_function,
+            buffer: Arc::new(Mutex::new(vec![])),
         }
     }
 
