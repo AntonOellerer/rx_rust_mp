@@ -79,3 +79,57 @@ where
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::create::create;
+    use crate::from_iter::from_iter;
+    use crate::observable::Observable;
+    use crate::observer::Observer;
+    use futures::executor::ThreadPool;
+    use std::sync::atomic::{AtomicI32, Ordering};
+
+    #[test]
+    fn it_flattens() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10)
+            .map(|_| from_iter(0..10))
+            .flatten()
+            .subscribe(
+                |v| {
+                    collector.fetch_add(v, Ordering::Relaxed);
+                },
+                pool,
+            );
+        assert_eq!(collector.into_inner(), 450);
+    }
+
+    #[test]
+    fn it_groups_flattens() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10).group_by(|v| *v).flatten().subscribe(
+            |v| {
+                collector.fetch_add(v, Ordering::Relaxed);
+            },
+            pool,
+        );
+        assert_eq!(collector.into_inner(), 45);
+    }
+
+    #[test]
+    fn it_flat_maps() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10)
+            .flat_map(|v| create(move |s| s.next(v).unwrap()))
+            .subscribe(
+                |v| {
+                    collector.fetch_add(v, Ordering::Relaxed);
+                },
+                pool,
+            );
+        assert_eq!(collector.into_inner(), 45);
+    }
+}

@@ -52,3 +52,25 @@ where
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::from_iter::from_iter;
+    use crate::observable::Observable;
+    use futures::executor::ThreadPool;
+    use std::cell::RefCell;
+    use std::sync::Arc;
+
+    #[test]
+    fn it_averages() {
+        let collector = Arc::new(RefCell::new(0_f64));
+        let pool = ThreadPool::new().unwrap();
+        from_iter(0..10).map(f64::from).average().subscribe(
+            |v| {
+                *collector.borrow_mut() += v;
+            },
+            pool,
+        );
+        assert_eq!(*collector.borrow(), 4.5_f64);
+    }
+}

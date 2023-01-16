@@ -85,3 +85,27 @@ where
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::from_iter::from_iter;
+    use crate::observable::Observable;
+    use futures::executor::ThreadPool;
+    use std::sync::atomic::{AtomicI32, Ordering};
+
+    #[test]
+    fn it_groups() {
+        let collector = AtomicI32::new(0);
+        let pool = ThreadPool::new().unwrap();
+        let pool_c = pool.clone();
+        from_iter(0..10).group_by(|v| *v).subscribe(
+            |group| {
+                let key = group.key;
+                group.subscribe(|v| assert_eq!(v, key), pool_c.clone());
+                collector.fetch_add(key, Ordering::Relaxed);
+            },
+            pool,
+        );
+        assert_eq!(collector.into_inner(), 45);
+    }
+}

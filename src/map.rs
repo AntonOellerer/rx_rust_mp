@@ -51,3 +51,24 @@ where
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::from_iter::from_iter;
+    use crate::observable::Observable;
+    use futures::executor::ThreadPool;
+    use std::sync::atomic::{AtomicI32, Ordering};
+
+    #[test]
+    fn it_maps() {
+        let collector = AtomicI32::new(0);
+        from_iter(0..10).map(|v| v + 1).subscribe(
+            |v| {
+                assert!(v > 0 && v < 11);
+                collector.fetch_add(v, Ordering::Relaxed);
+            },
+            ThreadPool::new().unwrap(),
+        );
+        assert_eq!(collector.into_inner(), 55);
+    }
+}
