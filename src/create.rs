@@ -10,7 +10,7 @@ pub struct Create<I, Item> {
 
 pub fn create<I, Item>(create_function: I) -> Create<I, Item>
 where
-    I: Fn(Sender<std::io::Result<Item>>),
+    I: FnMut(Sender<std::io::Result<Item>>),
 {
     Create {
         create_function,
@@ -20,12 +20,12 @@ where
 
 impl<I, Item> Observable for Create<I, Item>
 where
-    I: Fn(Sender<std::io::Result<Item>>) + Send + 'static,
+    I: FnMut(Sender<std::io::Result<Item>>) + Send + 'static,
     Item: Send + 'static,
 {
     type Item = Item;
 
-    fn actual_subscribe<O>(self, channel: Sender<std::io::Result<Self::Item>>, pool: O)
+    fn actual_subscribe<O>(mut self, channel: Sender<std::io::Result<Self::Item>>, pool: O)
     where
         O: Scheduler,
     {
@@ -55,6 +55,26 @@ mod test {
                 collector.fetch_add(v, Ordering::Relaxed);
             },
             pool,
+        );
+        assert_eq!(collector.into_inner(), 6);
+    }
+
+    #[test]
+    fn it_can_mut_access_external_state() {
+        let collector = AtomicI32::new(0);
+        let mut _test = 0;
+        create(move |sender| {
+            sender.next(1).unwrap();
+            sender.next(2).unwrap();
+            sender.next(3).unwrap();
+            let _test2 = &mut _test;
+            assert_eq!(*_test2, 0);
+        })
+        .subscribe(
+            |v| {
+                collector.fetch_add(v, Ordering::Relaxed);
+            },
+            ThreadPool::new().unwrap(),
         );
         assert_eq!(collector.into_inner(), 6);
     }
