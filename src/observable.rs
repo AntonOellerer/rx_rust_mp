@@ -111,9 +111,9 @@ pub trait Observable: Sized {
         }
     }
 
-    fn subscribe<F, S>(self, f: F, scheduler: S)
+    fn subscribe<F, S>(self, mut f: F, scheduler: S)
     where
-        F: Fn(Self::Item),
+        F: FnMut(Self::Item),
         S: Scheduler + Clone + Send + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::channel();
@@ -132,4 +132,26 @@ pub trait Observable: Sized {
     fn actual_subscribe<O>(self, channel: Sender<io::Result<Self::Item>>, pool: O)
     where
         O: Scheduler + Clone + Send + 'static;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::from_iter::from_iter;
+    use crate::observable::Observable;
+    use futures::executor::ThreadPool;
+    use std::sync::atomic::{AtomicI32, Ordering};
+
+    #[test]
+    fn it_can_mut_access_external_state() {
+        let collector = AtomicI32::new(0);
+        let mut _test = 0;
+        from_iter(0..10).subscribe(
+            |v| {
+                let _test2 = &mut _test;
+                collector.fetch_add(v, Ordering::Relaxed);
+            },
+            ThreadPool::new().unwrap(),
+        );
+        assert_eq!(collector.into_inner(), 45);
+    }
 }
