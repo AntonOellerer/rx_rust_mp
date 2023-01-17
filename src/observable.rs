@@ -114,7 +114,7 @@ pub trait Observable: Sized {
 
     fn subscribe<F, S>(self, mut f: F, scheduler: S) -> RemoteHandle<()>
     where
-        F: FnMut(Self::Item) + Send + Clone + 'static,
+        F: FnMut(Self::Item) + Send + 'static,
         S: Scheduler + Clone + Send + 'static,
         Self::Item: Send + 'static,
     {
