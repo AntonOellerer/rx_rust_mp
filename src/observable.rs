@@ -8,6 +8,7 @@ use crate::reduce::ReduceOp;
 use crate::scheduler::Scheduler;
 #[cfg(feature = "recurring")]
 use crate::sliding_window::SlidingWindowObservable;
+use futures::future::RemoteHandle;
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::io;
@@ -111,22 +112,25 @@ pub trait Observable: Sized {
         }
     }
 
-    fn subscribe<F, S>(self, mut f: F, scheduler: S)
+    fn subscribe<F, S>(self, mut f: F, scheduler: S) -> RemoteHandle<()>
     where
-        F: FnMut(Self::Item),
+        F: FnMut(Self::Item) + Send + Clone + 'static,
         S: Scheduler + Clone + Send + 'static,
+        Self::Item: Send + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::channel();
+        let scheduler_c = scheduler.clone();
         self.actual_subscribe(incoming_tx, scheduler);
-        //todo this means that `subscribe` blocks until no more messages arrive, maybe move to different thread and return handle?
-        loop {
-            let message = incoming_rx.recv();
-            match message {
-                Ok(Ok(message)) => (f)(message),
-                Ok(Err(e)) => panic!("{}", e.to_string()),
-                Err(_) => break, // Channel closed
+        scheduler_c.schedule(move || {
+            loop {
+                let message = incoming_rx.recv();
+                match message {
+                    Ok(Ok(message)) => (f)(message),
+                    Ok(Err(e)) => panic!("{}", e.to_string()),
+                    Err(_) => break, // Channel closed
+                }
             }
-        }
+        })
     }
 
     fn actual_subscribe<O>(self, channel: Sender<io::Result<Self::Item>>, pool: O)
@@ -140,18 +144,21 @@ mod tests {
     use crate::observable::Observable;
     use futures::executor::ThreadPool;
     use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn it_can_mut_access_external_state() {
-        let collector = AtomicI32::new(0);
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
         let mut _test = 0;
-        from_iter(0..10).subscribe(
-            |v| {
+        let handle = from_iter(0..10).subscribe(
+            move |v| {
                 let _test2 = &mut _test;
                 collector.fetch_add(v, Ordering::Relaxed);
             },
             ThreadPool::new().unwrap(),
         );
-        assert_eq!(collector.into_inner(), 45);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 45);
     }
 }

@@ -65,7 +65,8 @@ where
                     break;
                 } // Channel closed
             }
-        });
+        })
+        .forget();
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -95,7 +96,7 @@ mod tests {
 
         let expected = vec![vec![0], vec![0, 1], vec![1], vec![1, 2], vec![2]];
 
-        create(|sender| {
+        let handle = create(|sender| {
             let sleep = Duration::from_millis(43);
             sender.next(0).unwrap();
             std::thread::sleep(sleep);
@@ -111,6 +112,7 @@ mod tests {
         .map(|window| window.iter().map(|(i, _)| *i).collect::<Vec<i32>>())
         .subscribe(move |buffer| actual.lock().unwrap().push(buffer), pool);
 
+        futures::executor::block_on(handle);
         assert_eq!(expected, *actual_c.lock().unwrap());
     }
 }

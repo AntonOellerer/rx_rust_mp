@@ -42,7 +42,8 @@ where
                 }
             }
             channel.send(Ok(self.collector)).unwrap();
-        });
+        })
+        .forget();
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -53,16 +54,19 @@ mod tests {
     use crate::observable::Observable;
     use futures::executor::ThreadPool;
     use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn it_reduces() {
-        let collector = AtomicI32::new(0);
-        from_iter(0..10).reduce(0, |c, v| c + v).subscribe(
-            |v| {
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
+        let handle = from_iter(0..10).reduce(0, |c, v| c + v).subscribe(
+            move |v| {
                 collector.fetch_add(v, Ordering::Relaxed);
             },
             ThreadPool::new().unwrap(),
         );
-        assert_eq!(collector.into_inner(), 45);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 45);
     }
 }

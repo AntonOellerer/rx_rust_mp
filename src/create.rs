@@ -29,7 +29,8 @@ where
     where
         O: Scheduler,
     {
-        pool.schedule(move || (self.create_function)(channel));
+        pool.schedule(move || (self.create_function)(channel))
+            .forget();
     }
 }
 
@@ -40,30 +41,34 @@ mod test {
     use crate::observer::Observer;
     use futures::executor::ThreadPool;
     use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn it_creates() {
-        let collector = AtomicI32::new(0);
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
         let pool = ThreadPool::new().unwrap();
-        create(|sender| {
+        let handle = create(|sender| {
             sender.next(1).unwrap();
             sender.next(2).unwrap();
             sender.next(3).unwrap();
         })
         .subscribe(
-            |v| {
+            move |v| {
                 collector.fetch_add(v, Ordering::Relaxed);
             },
             pool,
         );
-        assert_eq!(collector.into_inner(), 6);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 6);
     }
 
     #[test]
     fn it_can_mut_access_external_state() {
-        let collector = AtomicI32::new(0);
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
         let mut _test = 0;
-        create(move |sender| {
+        let handle = create(move |sender| {
             sender.next(1).unwrap();
             sender.next(2).unwrap();
             sender.next(3).unwrap();
@@ -71,11 +76,12 @@ mod test {
             assert_eq!(*_test2, 0);
         })
         .subscribe(
-            |v| {
+            move |v| {
                 collector.fetch_add(v, Ordering::Relaxed);
             },
             ThreadPool::new().unwrap(),
         );
-        assert_eq!(collector.into_inner(), 6);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 6);
     }
 }

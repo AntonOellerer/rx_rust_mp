@@ -34,10 +34,14 @@ where
             let func_c = self.func.clone();
             let pool_cc = pool_c.clone();
             match message {
-                Ok(Ok(message)) => pool_cc.schedule(move || {
-                    let out = (func_c)(message);
-                    channel_c.send(Ok(out)).unwrap();
-                }),
+                Ok(Ok(message)) => {
+                    pool_cc
+                        .schedule(move || {
+                            let out = (func_c)(message);
+                            channel_c.send(Ok(out)).unwrap();
+                        })
+                        .forget();
+                }
                 Ok(Err(e)) => {
                     eprintln!("Map, inner unwrap: {:?}", e.to_string());
                     channel
@@ -47,7 +51,8 @@ where
                 }
                 Err(_) => break, // Channel closed
             }
-        });
+        })
+        .forget();
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -58,17 +63,20 @@ mod tests {
     use crate::observable::Observable;
     use futures::executor::ThreadPool;
     use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn it_maps() {
-        let collector = AtomicI32::new(0);
-        from_iter(0..10).map(|v| v + 1).subscribe(
-            |v| {
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
+        let handle = from_iter(0..10).map(|v| v + 1).subscribe(
+            move |v| {
                 assert!(v > 0 && v < 11);
                 collector.fetch_add(v, Ordering::Relaxed);
             },
             ThreadPool::new().unwrap(),
         );
-        assert_eq!(collector.into_inner(), 55);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 55);
     }
 }

@@ -26,7 +26,8 @@ where
                 Ok(message) => channel.send(message).unwrap(),
                 Err(_) => break, // Channel closed
             }
-        });
+        })
+        .forget();
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -68,14 +69,16 @@ where
                 }
                 Err(_) => break, // Channel closed
             }
-        });
+        })
+        .forget();
         pool.schedule(move || loop {
             let message = subscriber_rx.recv();
             match message {
                 Ok(message) => channel.send(message).unwrap(),
                 Err(_) => break, // Channel closed
             }
-        });
+        })
+        .forget();
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -88,48 +91,55 @@ mod tests {
     use crate::observer::Observer;
     use futures::executor::ThreadPool;
     use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn it_flattens() {
-        let collector = AtomicI32::new(0);
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
         let pool = ThreadPool::new().unwrap();
-        from_iter(0..10)
+        let handle = from_iter(0..10)
             .map(|_| from_iter(0..10))
             .flatten()
             .subscribe(
-                |v| {
+                move |v| {
                     collector.fetch_add(v, Ordering::Relaxed);
                 },
                 pool,
             );
-        assert_eq!(collector.into_inner(), 450);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 450);
     }
 
     #[test]
     fn it_groups_flattens() {
-        let collector = AtomicI32::new(0);
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
         let pool = ThreadPool::new().unwrap();
-        from_iter(0..10).group_by(|v| *v).flatten().subscribe(
-            |v| {
+        let handle = from_iter(0..10).group_by(|v| *v).flatten().subscribe(
+            move |v| {
                 collector.fetch_add(v, Ordering::Relaxed);
             },
             pool,
         );
-        assert_eq!(collector.into_inner(), 45);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 45);
     }
 
     #[test]
     fn it_flat_maps() {
-        let collector = AtomicI32::new(0);
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
         let pool = ThreadPool::new().unwrap();
-        from_iter(0..10)
+        let handle = from_iter(0..10)
             .flat_map(|v| create(move |s| s.next(v).unwrap()))
             .subscribe(
-                |v| {
+                move |v| {
                     collector.fetch_add(v, Ordering::Relaxed);
                 },
                 pool,
             );
-        assert_eq!(collector.into_inner(), 45);
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 45);
     }
 }

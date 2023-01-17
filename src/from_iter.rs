@@ -27,6 +27,7 @@ where
         self.iter.into_iter().for_each(|v| {
             let channel_c = channel.clone();
             pool.schedule(move || channel_c.send(Ok(v)).unwrap())
+                .forget();
         });
     }
 }

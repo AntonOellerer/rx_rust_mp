@@ -48,7 +48,8 @@ where
             channel
                 .send(Ok(self.collector / self.count.into()))
                 .unwrap();
-        });
+        })
+        .forget();
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -58,19 +59,21 @@ mod test {
     use crate::from_iter::from_iter;
     use crate::observable::Observable;
     use futures::executor::ThreadPool;
-    use std::cell::RefCell;
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn it_averages() {
-        let collector = Arc::new(RefCell::new(0_f64));
+        let collector = Arc::new(Mutex::new(0_f64));
+        let collector_c = collector.clone();
         let pool = ThreadPool::new().unwrap();
-        from_iter(0..10).map(f64::from).average().subscribe(
-            |v| {
-                *collector.borrow_mut() += v;
+        let handle = from_iter(0..10).map(f64::from).average().subscribe(
+            move |v| {
+                eprintln!("Hello");
+                *collector.lock().unwrap() += v;
             },
             pool,
         );
-        assert_eq!(*collector.borrow(), 4.5_f64);
+        futures::executor::block_on(handle);
+        assert_eq!(*collector_c.lock().unwrap(), 4.5_f64);
     }
 }

@@ -30,7 +30,8 @@ where
                 Ok(message) => channel.send(message).unwrap(),
                 Err(_) => break, // Channel closed
             }
-        });
+        })
+        .forget();
     }
 }
 
@@ -81,7 +82,8 @@ where
                 }
                 Err(_) => break, // Channel closed
             }
-        });
+        })
+        .forget();
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -92,20 +94,27 @@ mod tests {
     use crate::observable::Observable;
     use futures::executor::ThreadPool;
     use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn it_groups() {
-        let collector = AtomicI32::new(0);
+        let collector = Arc::new(AtomicI32::new(0));
+        let collector_c = collector.clone();
         let pool = ThreadPool::new().unwrap();
-        let pool_c = pool.clone();
-        from_iter(0..10).group_by(|v| *v).subscribe(
-            |group| {
-                let key = group.key;
-                group.subscribe(|v| assert_eq!(v, key), pool_c.clone());
-                collector.fetch_add(key, Ordering::Relaxed);
-            },
-            pool,
-        );
-        assert_eq!(collector.into_inner(), 45);
+        let handle = from_iter(0..10)
+            .group_by(|v| *v)
+            .map(|v_group| {
+                let key = v_group.key;
+                v_group.map(move |v| v * key)
+            })
+            .flatten()
+            .subscribe(
+                move |v| {
+                    collector.fetch_add(v, Ordering::Relaxed);
+                },
+                pool,
+            );
+        futures::executor::block_on(handle);
+        assert_eq!(collector_c.load(Ordering::Relaxed), 285);
     }
 }
