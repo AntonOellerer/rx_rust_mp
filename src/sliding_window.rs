@@ -23,7 +23,7 @@ where
 {
     type Item = Vec<Source::Item>;
 
-    fn actual_subscribe<O>(self, channel: Sender<std::io::Result<Self::Item>>, pool: O)
+    fn actual_subscribe<O>(self, channel: Sender<io::Result<Self::Item>>, pool: O)
     where
         O: Scheduler + Clone + Send + 'static,
     {

@@ -5,6 +5,7 @@ use std::sync::mpsc::Sender;
 
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
+use crate::utils;
 
 pub struct FlattenObserver<S> {
     pub(crate) source: S,
@@ -20,14 +21,7 @@ where
         O: Scheduler + Clone + Send + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::channel::<io::Result<S::Item>>();
-        pool.schedule(move || loop {
-            let message = incoming_rx.recv();
-            match message {
-                Ok(message) => channel.send(message).unwrap(),
-                Err(_) => break, // Channel closed
-            }
-        })
-        .forget();
+        utils::forward_messages(incoming_rx, channel, pool.clone());
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }
@@ -71,14 +65,7 @@ where
             }
         })
         .forget();
-        pool.schedule(move || loop {
-            let message = subscriber_rx.recv();
-            match message {
-                Ok(message) => channel.send(message).unwrap(),
-                Err(_) => break, // Channel closed
-            }
-        })
-        .forget();
+        utils::forward_messages(subscriber_rx, channel, pool.clone());
         self.source.actual_subscribe(incoming_tx, pool);
     }
 }

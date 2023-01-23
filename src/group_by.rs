@@ -1,5 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
+use crate::utils;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::io;
@@ -24,14 +25,7 @@ where
     where
         O: Scheduler + Clone + Send + 'static,
     {
-        pool.schedule(move || loop {
-            let message = self.source.recv();
-            match message {
-                Ok(message) => channel.send(message).unwrap(),
-                Err(_) => break, // Channel closed
-            }
-        })
-        .forget();
+        utils::forward_messages(self.source, channel, pool);
     }
 }
 

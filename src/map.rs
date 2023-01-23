@@ -20,7 +20,6 @@ where
     Item: Send + 'static,
 {
     type Item = Item;
-    // type Err = S::Err;
 
     fn actual_subscribe<O>(self, channel: Sender<io::Result<Self::Item>>, pool: O)
     where

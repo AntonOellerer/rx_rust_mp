@@ -19,7 +19,6 @@ where
     F: Fn(&S::Item) -> bool + Clone + Send + 'static,
 {
     type Item = S::Item;
-    // type Err = S::Err;
 
     fn actual_subscribe<O>(self, channel: Sender<io::Result<Self::Item>>, pool: O)
     where

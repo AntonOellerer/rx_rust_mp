@@ -4,6 +4,7 @@ use crate::filter::FilterOp;
 use crate::flatten::FlattenObservable;
 use crate::group_by::{GroupByOp, SenderMap};
 use crate::map::MapOp;
+use crate::merge::MergeObservable;
 use crate::reduce::ReduceOp;
 use crate::scheduler::Scheduler;
 #[cfg(feature = "recurring")]
@@ -109,6 +110,13 @@ pub trait Observable: Sized {
             window_size,
             time_function,
             buffer: Arc::new(Mutex::new(vec![])),
+        }
+    }
+
+    fn merge(self, source2: Self) -> MergeObservable<Self, Self> {
+        MergeObservable {
+            source1: self,
+            source2,
         }
     }
 
