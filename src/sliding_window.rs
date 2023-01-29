@@ -1,5 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
+use log::error;
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc::Sender;
@@ -48,7 +49,7 @@ where
             match message {
                 Ok(Ok(message)) => buffer_c.lock().unwrap().push(message),
                 Ok(Err(e)) => {
-                    eprintln!("Sliding window, inner unwrap: {:?}", e.to_string());
+                    error!("Sliding window, inner unwrap: {:?}", e.to_string());
                     channel_c
                         .send(Err(io::Error::new(ErrorKind::Other, e)))
                         .unwrap();

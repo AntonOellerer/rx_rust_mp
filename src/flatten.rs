@@ -1,3 +1,4 @@
+use log::error;
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc;
@@ -55,7 +56,7 @@ where
                         .actual_subscribe(subscriber_tx.clone(), pool_c.clone());
                 }
                 Ok(Err(e)) => {
-                    eprintln!("Flatten: {:?}", e.to_string());
+                    error!("Flatten: {:?}", e.to_string());
                     channel_c
                         .send(Err(io::Error::new(ErrorKind::Other, e)))
                         .unwrap();

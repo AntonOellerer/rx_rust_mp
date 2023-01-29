@@ -1,6 +1,7 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
 use crate::utils;
+use log::error;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::io;
@@ -68,7 +69,7 @@ where
                     sender.send(Ok(message)).unwrap();
                 }
                 Ok(Err(e)) => {
-                    eprintln!("Group By, inner unwrap: {:?}", e.to_string());
+                    error!("Group By, inner unwrap: {:?}", e.to_string());
                     channel
                         .send(Err(io::Error::new(ErrorKind::Other, e)))
                         .unwrap();

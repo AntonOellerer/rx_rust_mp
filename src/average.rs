@@ -1,5 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
+use log::error;
 use num_traits::Zero;
 use std::io;
 use std::io::ErrorKind;
@@ -36,7 +37,7 @@ where
                         self.count += 1;
                     }
                     Ok(Err(e)) => {
-                        eprintln!("Reduce, inner unwrap: {:?}", e.to_string());
+                        error!("Reduce, inner unwrap: {:?}", e.to_string());
                         channel
                             .send(Err(io::Error::new(ErrorKind::Other, e)))
                             .unwrap();
@@ -68,7 +69,6 @@ mod test {
         let pool = ThreadPool::new().unwrap();
         let handle = from_iter(0..10).map(f64::from).average().subscribe(
             move |v| {
-                eprintln!("Hello");
                 *collector.lock().unwrap() += v;
             },
             pool,

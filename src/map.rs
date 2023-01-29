@@ -4,6 +4,7 @@ use std::io::ErrorKind;
 
 use crate::scheduler::Scheduler;
 
+use log::error;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
@@ -42,7 +43,7 @@ where
                         .forget();
                 }
                 Ok(Err(e)) => {
-                    eprintln!("Map, inner unwrap: {:?}", e.to_string());
+                    error!("Map, inner unwrap: {:?}", e.to_string());
                     channel
                         .send(Err(io::Error::new(ErrorKind::Other, e)))
                         .unwrap();

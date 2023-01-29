@@ -1,5 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
+use log::error;
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc;
@@ -32,7 +33,7 @@ where
                 match message {
                     Ok(Ok(message)) => self.collector = (self.func)(self.collector, message),
                     Ok(Err(e)) => {
-                        eprintln!("Reduce, inner unwrap: {:?}", e.to_string());
+                        error!("Reduce, inner unwrap: {:?}", e.to_string());
                         channel
                             .send(Err(io::Error::new(ErrorKind::Other, e)))
                             .unwrap();
