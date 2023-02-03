@@ -1,6 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
-use log::error;
+use log::{debug, error};
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc::Sender;
@@ -44,28 +44,31 @@ where
             },
             self.interval,
         );
-        pool.schedule(move || loop {
-            let message = incoming_rx.recv();
-            match message {
-                Ok(Ok(message)) => buffer_c.lock().unwrap().push(message),
-                Ok(Err(e)) => {
-                    error!("Sliding window, inner unwrap: {:?}", e.to_string());
-                    channel_c
-                        .send(Err(io::Error::new(ErrorKind::Other, e)))
-                        .unwrap();
-                    break;
+        pool.schedule(move || {
+            loop {
+                let message = incoming_rx.recv();
+                match message {
+                    Ok(Ok(message)) => buffer_c.lock().unwrap().push(message),
+                    Ok(Err(e)) => {
+                        error!("Sliding window, inner unwrap: {:?}", e.to_string());
+                        channel_c
+                            .send(Err(io::Error::new(ErrorKind::Other, e)))
+                            .unwrap();
+                        break;
+                    }
+                    Err(_) => {
+                        let mut unlocked_buffer = buffer_cc.lock().unwrap();
+                        unlocked_buffer.drain_filter(|v| {
+                            (time_function_c)(v) + self.window_size < get_now_duration()
+                        });
+                        let copied_buffer = unlocked_buffer.iter().cloned().collect();
+                        channel_c.send(Ok(copied_buffer)).unwrap();
+                        handle.abort();
+                        break;
+                    } // Channel closed
                 }
-                Err(_) => {
-                    let mut unlocked_buffer = buffer_cc.lock().unwrap();
-                    unlocked_buffer.drain_filter(|v| {
-                        (time_function_c)(v) + self.window_size < get_now_duration()
-                    });
-                    let copied_buffer = unlocked_buffer.iter().cloned().collect();
-                    channel_c.send(Ok(copied_buffer)).unwrap();
-                    handle.abort();
-                    break;
-                } // Channel closed
             }
+            debug!("Sliding window finished");
         })
         .forget();
         self.source.actual_subscribe(incoming_tx, pool);

@@ -1,4 +1,4 @@
-use log::error;
+use log::{debug, error};
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc;
@@ -48,22 +48,25 @@ where
             mpsc::channel::<io::Result<<S::Item as Observable>::Item>>();
         let pool_c = pool.clone();
         let channel_c = channel.clone();
-        pool.schedule(move || loop {
-            let message = incoming_rx.recv();
-            match message {
-                Ok(Ok(message)) => {
-                    FlattenObserver { source: message }
-                        .actual_subscribe(subscriber_tx.clone(), pool_c.clone());
+        pool.schedule(move || {
+            loop {
+                let message = incoming_rx.recv();
+                match message {
+                    Ok(Ok(message)) => {
+                        FlattenObserver { source: message }
+                            .actual_subscribe(subscriber_tx.clone(), pool_c.clone());
+                    }
+                    Ok(Err(e)) => {
+                        error!("Flatten: {:?}", e.to_string());
+                        channel_c
+                            .send(Err(io::Error::new(ErrorKind::Other, e)))
+                            .unwrap();
+                        break;
+                    }
+                    Err(_) => break, // Channel closed
                 }
-                Ok(Err(e)) => {
-                    error!("Flatten: {:?}", e.to_string());
-                    channel_c
-                        .send(Err(io::Error::new(ErrorKind::Other, e)))
-                        .unwrap();
-                    break;
-                }
-                Err(_) => break, // Channel closed
             }
+            debug!("Flatten finished");
         })
         .forget();
         utils::forward_messages(subscriber_rx, channel, pool.clone());

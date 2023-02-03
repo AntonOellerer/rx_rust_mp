@@ -1,7 +1,7 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
 use crate::utils;
-use log::error;
+use log::{debug, error};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::io;
@@ -51,32 +51,36 @@ where
         O: Scheduler + Clone + Send + 'static,
     {
         let (incoming_tx, incoming_rx) = mpsc::channel::<io::Result<Source::Item>>();
-        pool.schedule(move || loop {
-            let message = incoming_rx.recv();
-            match message {
-                Ok(Ok(message)) => {
-                    let key = (self.grouping_function)(&message);
-                    let sender = self.channel_store.entry(key.clone()).or_insert_with(|| {
-                        let (subject_tx, subject_rx) = mpsc::channel::<io::Result<Source::Item>>();
+        pool.schedule(move || {
+            loop {
+                let message = incoming_rx.recv();
+                match message {
+                    Ok(Ok(message)) => {
+                        let key = (self.grouping_function)(&message);
+                        let sender = self.channel_store.entry(key.clone()).or_insert_with(|| {
+                            let (subject_tx, subject_rx) =
+                                mpsc::channel::<io::Result<Source::Item>>();
+                            channel
+                                .send(Ok(KeySubject {
+                                    key,
+                                    source: subject_rx,
+                                }))
+                                .unwrap();
+                            subject_tx
+                        });
+                        sender.send(Ok(message)).unwrap();
+                    }
+                    Ok(Err(e)) => {
+                        error!("Group By, inner unwrap: {:?}", e.to_string());
                         channel
-                            .send(Ok(KeySubject {
-                                key,
-                                source: subject_rx,
-                            }))
+                            .send(Err(io::Error::new(ErrorKind::Other, e)))
                             .unwrap();
-                        subject_tx
-                    });
-                    sender.send(Ok(message)).unwrap();
+                        break;
+                    }
+                    Err(_) => break, // Channel closed
                 }
-                Ok(Err(e)) => {
-                    error!("Group By, inner unwrap: {:?}", e.to_string());
-                    channel
-                        .send(Err(io::Error::new(ErrorKind::Other, e)))
-                        .unwrap();
-                    break;
-                }
-                Err(_) => break, // Channel closed
             }
+            debug!("Group by finished");
         })
         .forget();
         self.source.actual_subscribe(incoming_tx, pool);

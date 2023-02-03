@@ -10,6 +10,7 @@ use crate::scheduler::Scheduler;
 #[cfg(feature = "recurring")]
 use crate::sliding_window::SlidingWindowObservable;
 use futures::future::RemoteHandle;
+use log::debug;
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::io;
@@ -138,6 +139,7 @@ pub trait Observable: Sized {
                     Err(_) => break, // Channel closed
                 }
             }
+            debug!("Subscribe finished");
         })
     }
 
