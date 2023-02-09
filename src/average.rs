@@ -1,6 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
-use log::{debug, error};
+use log::{error, trace};
 use num_traits::Zero;
 use std::io;
 use std::io::ErrorKind;
@@ -49,7 +49,7 @@ where
             channel
                 .send(Ok(self.collector / self.count.into()))
                 .unwrap();
-            debug!("Average finished");
+            trace!("Average finished");
         })
         .forget();
         self.source.actual_subscribe(incoming_tx, pool);

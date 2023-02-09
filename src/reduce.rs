@@ -1,6 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
-use log::{debug, error};
+use log::{error, trace};
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc;
@@ -43,7 +43,7 @@ where
                 }
             }
             channel.send(Ok(self.collector)).unwrap();
-            debug!("Reduce finished");
+            trace!("Reduce finished");
         })
         .forget();
         self.source.actual_subscribe(incoming_tx, pool);

@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 
 use crate::scheduler::Scheduler;
 
-use log::{debug, error};
+use log::{error, trace};
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
@@ -53,7 +53,7 @@ where
                     Err(_) => break, // Channel closed
                 }
             }
-            debug!("Filter finished");
+            trace!("Filter finished");
         })
         .forget();
         self.source.actual_subscribe(incoming_tx, pool);

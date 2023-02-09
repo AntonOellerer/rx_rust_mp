@@ -1,7 +1,7 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
 use crate::utils;
-use log::{debug, error};
+use log::{error, trace};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::io;
@@ -80,7 +80,7 @@ where
                     Err(_) => break, // Channel closed
                 }
             }
-            debug!("Group by finished");
+            trace!("Group by finished");
         })
         .forget();
         self.source.actual_subscribe(incoming_tx, pool);

@@ -1,6 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
-use log::debug;
+use log::trace;
 use std::marker::PhantomData;
 use std::sync::mpsc::Sender;
 
@@ -32,7 +32,7 @@ where
     {
         pool.schedule(move || {
             (self.create_function)(channel);
-            debug!("Create finished");
+            trace!("Create finished");
         })
         .forget();
     }

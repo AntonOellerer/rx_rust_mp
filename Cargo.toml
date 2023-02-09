@@ -1,6 +1,6 @@
 [package]
 name = "rx_rust_mp"
-version = "0.6.5"
+version = "0.7.0"
 authors = ["Anton Oellerer"]
 edition = "2021"
 description = "A protoype implementation of the ReactiveX API in Rust using a message passing approach"

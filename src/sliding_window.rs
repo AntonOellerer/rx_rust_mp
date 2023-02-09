@@ -1,6 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
-use log::{debug, error};
+use log::{error, trace};
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc::Sender;
@@ -68,7 +68,7 @@ where
                     } // Channel closed
                 }
             }
-            debug!("Sliding window finished");
+            trace!("Sliding window finished");
         })
         .forget();
         self.source.actual_subscribe(incoming_tx, pool);

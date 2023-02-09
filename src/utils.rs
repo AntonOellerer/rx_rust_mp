@@ -1,5 +1,5 @@
 use crate::scheduler::Scheduler;
-use log::debug;
+use log::trace;
 use std::sync::mpsc::{Receiver, Sender};
 
 pub fn forward_messages<Item, O>(incoming: Receiver<Item>, outgoing: Sender<Item>, pool: O)
@@ -15,7 +15,7 @@ where
                 Err(_) => break, // Channel closed
             }
         }
-        debug!("Forwarding finished");
+        trace!("Forwarding finished");
     })
     .forget();
 }

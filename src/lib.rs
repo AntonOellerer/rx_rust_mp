@@ -16,4 +16,5 @@ pub mod reduce;
 pub mod scheduler;
 #[cfg(feature = "recurring")]
 pub mod sliding_window;
+pub mod subscribe_on;
 pub mod utils;

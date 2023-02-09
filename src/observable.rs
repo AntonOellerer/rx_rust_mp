@@ -9,8 +9,9 @@ use crate::reduce::ReduceOp;
 use crate::scheduler::Scheduler;
 #[cfg(feature = "recurring")]
 use crate::sliding_window::SlidingWindowObservable;
+use crate::subscribe_on::SubscribeOnObservable;
 use futures::future::RemoteHandle;
-use log::debug;
+use log::trace;
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::io;
@@ -121,6 +122,13 @@ pub trait Observable: Sized {
         }
     }
 
+    fn subscribe_on<Pool>(self, pool: Pool) -> SubscribeOnObservable<Self, Pool>
+    where
+        Pool: Scheduler + Clone + Send + 'static,
+    {
+        SubscribeOnObservable { source: self, pool }
+    }
+
     fn subscribe<F, S>(self, mut f: F, scheduler: S) -> RemoteHandle<()>
     where
         F: FnMut(Self::Item) + Send + 'static,
@@ -139,7 +147,7 @@ pub trait Observable: Sized {
                     Err(_) => break, // Channel closed
                 }
             }
-            debug!("Subscribe finished");
+            trace!("Subscribe finished");
         })
     }
 

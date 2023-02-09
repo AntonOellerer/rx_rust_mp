@@ -1,4 +1,4 @@
-use log::{debug, error};
+use log::{error, trace};
 use std::io;
 use std::io::ErrorKind;
 use std::sync::mpsc;
@@ -66,7 +66,7 @@ where
                     Err(_) => break, // Channel closed
                 }
             }
-            debug!("Flatten finished");
+            trace!("Flatten finished");
         })
         .forget();
         utils::forward_messages(subscriber_rx, channel, pool.clone());
