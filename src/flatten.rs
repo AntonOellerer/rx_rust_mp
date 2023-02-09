@@ -8,25 +8,6 @@ use crate::observable::Observable;
 use crate::scheduler::Scheduler;
 use crate::utils;
 
-pub struct FlattenObserver<S> {
-    pub(crate) source: S,
-}
-
-impl<S> FlattenObserver<S>
-where
-    S: Observable,
-    S::Item: Send + 'static,
-{
-    fn actual_subscribe<O>(self, channel: Sender<io::Result<S::Item>>, pool: O)
-    where
-        O: Scheduler + Clone + Send + 'static,
-    {
-        let (incoming_tx, incoming_rx) = mpsc::channel::<io::Result<S::Item>>();
-        utils::forward_messages(incoming_rx, channel, pool.clone());
-        self.source.actual_subscribe(incoming_tx, pool);
-    }
-}
-
 pub struct FlattenObservable<S> {
     pub(crate) source: S,
 }
@@ -53,8 +34,7 @@ where
                 let message = incoming_rx.recv();
                 match message {
                     Ok(Ok(message)) => {
-                        FlattenObserver { source: message }
-                            .actual_subscribe(subscriber_tx.clone(), pool_c.clone());
+                        message.actual_subscribe(subscriber_tx.clone(), pool_c.clone());
                     }
                     Ok(Err(e)) => {
                         error!("Flatten: {:?}", e.to_string());
