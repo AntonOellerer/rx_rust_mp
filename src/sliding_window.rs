@@ -39,7 +39,7 @@ where
                 unlocked_buffer.drain_filter(|v| {
                     (self.time_function)(v) + self.window_size < get_now_duration()
                 });
-                let copied_buffer = unlocked_buffer.iter().cloned().collect();
+                let copied_buffer = unlocked_buffer.clone();
                 channel.send(Ok(copied_buffer)).unwrap();
             },
             self.interval,
