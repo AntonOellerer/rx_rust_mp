@@ -15,7 +15,7 @@ where
 {
     Create {
         create_function,
-        _marker: PhantomData::default(),
+        _marker: PhantomData,
     }
 }
 

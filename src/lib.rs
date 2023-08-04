@@ -1,4 +1,3 @@
-#![feature(drain_filter)]
 extern crate core;
 
 #[cfg(feature = "math")]

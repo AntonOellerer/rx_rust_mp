@@ -1,8 +1,6 @@
 use crate::observable::Observable;
 use crate::scheduler::Scheduler;
-use crate::utils;
 use std::io;
-use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
 pub struct MergeObservable<Source1, Source2> {
@@ -21,11 +19,8 @@ where
     where
         O: Scheduler + Clone + Send + 'static,
     {
-        let (incoming_tx, incoming_rx) = mpsc::channel::<io::Result<Source::Item>>();
-        utils::forward_messages(incoming_rx, channel, pool.clone());
-        self.source1
-            .actual_subscribe(incoming_tx.clone(), pool.clone());
-        self.source2.actual_subscribe(incoming_tx, pool);
+        self.source1.actual_subscribe(channel.clone(), pool.clone());
+        self.source2.actual_subscribe(channel, pool);
     }
 }
 

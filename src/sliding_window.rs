@@ -36,9 +36,8 @@ where
         let handle = pool.schedule_repeating(
             move || {
                 let mut unlocked_buffer = self.buffer.lock().unwrap();
-                unlocked_buffer.drain_filter(|v| {
-                    (self.time_function)(v) + self.window_size < get_now_duration()
-                });
+                unlocked_buffer
+                    .retain(|v| (self.time_function)(v) + self.window_size > get_now_duration());
                 let copied_buffer = unlocked_buffer.clone();
                 channel.send(Ok(copied_buffer)).unwrap();
             },
@@ -58,8 +57,8 @@ where
                     }
                     Err(_) => {
                         let mut unlocked_buffer = buffer_cc.lock().unwrap();
-                        unlocked_buffer.drain_filter(|v| {
-                            (time_function_c)(v) + self.window_size < get_now_duration()
+                        unlocked_buffer.retain(|v| {
+                            (time_function_c)(v) + self.window_size > get_now_duration()
                         });
                         let copied_buffer = unlocked_buffer.iter().cloned().collect();
                         channel_c.send(Ok(copied_buffer)).unwrap();
